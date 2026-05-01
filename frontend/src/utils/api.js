@@ -2,6 +2,20 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 
+let isRefreshing = false
+let failedQueue = []
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
+  })
+  failedQueue = []
+}
+
 const api = axios.create({
   baseURL: '/api',
   timeout: 60000,
@@ -27,14 +41,57 @@ api.interceptors.response.use(
   (response) => {
     return response
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config
+
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          ElMessage.error('登录已过期，请重新登录')
-          localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          router.push('/login')
+          if (!originalRequest._retry) {
+            if (isRefreshing) {
+              return new Promise((resolve, reject) => {
+                failedQueue.push({ resolve, reject })
+              }).then(token => {
+                originalRequest.headers.Authorization = `Bearer ${token}`
+                return api(originalRequest)
+              }).catch(err => {
+                return Promise.reject(err)
+              })
+            }
+
+            originalRequest._retry = true
+            isRefreshing = true
+
+            const refreshToken = localStorage.getItem('refreshToken')
+            
+            if (refreshToken) {
+              try {
+                const response = await api.post('/auth/refresh', {
+                  refresh_token: refreshToken
+                })
+                
+                const newToken = response.data.access_token
+                localStorage.setItem('token', newToken)
+                
+                processQueue(null, newToken)
+                
+                originalRequest.headers.Authorization = `Bearer ${newToken}`
+                return api(originalRequest)
+              } catch (refreshError) {
+                processQueue(refreshError, null)
+                ElMessage.error('登录已过期，请重新登录')
+                clearAuthData()
+                router.push('/login')
+                return Promise.reject(refreshError)
+              } finally {
+                isRefreshing = false
+              }
+            } else {
+              ElMessage.error('登录已过期，请重新登录')
+              clearAuthData()
+              router.push('/login')
+            }
+          }
           break
         case 403:
           ElMessage.error('没有权限执行此操作')
@@ -58,5 +115,11 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+function clearAuthData() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('refreshToken')
+  localStorage.removeItem('user')
+}
 
 export default api

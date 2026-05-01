@@ -77,7 +77,10 @@ import {
   DataAnalysis, 
   Document, 
   SwitchButton,
-  TrendCharts
+  TrendCharts,
+  Setting,
+  User,
+  ArrowDown
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -86,9 +89,17 @@ const authStore = useAuthStore()
 
 const activeMenu = computed(() => route.path)
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
+const handleCommand = (command) => {
+  switch (command) {
+    case 'profile':
+    case 'settings':
+      router.push('/settings')
+      break
+    case 'logout':
+      authStore.logout()
+      router.push('/login')
+      break
+  }
 }
 </script>
 
