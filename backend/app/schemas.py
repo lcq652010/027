@@ -1,13 +1,24 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+from enum import Enum
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str
+    expires_in: Optional[int] = None
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+    token_type: Optional[str] = None
+
+class TokenRefresh(BaseModel):
+    refresh_token: str
 
 class UserBase(BaseModel):
     username: str
@@ -16,17 +27,32 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
+    role: Optional[UserRole] = UserRole.USER
 
 class UserLogin(BaseModel):
     username: str
     password: str
 
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str = Field(..., min_length=6)
+
 class UserResponse(UserBase):
     id: int
+    role: UserRole
+    is_active: int
+    last_login: Optional[datetime] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
+
+class UserUpdate(BaseModel):
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[int] = None
 
 class DataUploadResponse(BaseModel):
     message: str

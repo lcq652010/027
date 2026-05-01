@@ -27,14 +27,39 @@
           <el-icon><Document /></el-icon>
           历史记录
         </el-menu-item>
+        <el-menu-item index="/settings">
+          <el-icon><Setting /></el-icon>
+          设置
+        </el-menu-item>
       </el-menu>
-      <div class="user-info">
-        <span class="username">{{ authStore.username }}</span>
-        <el-button type="text" @click="handleLogout">
-          <el-icon><SwitchButton /></el-icon>
-          退出
-        </el-button>
-      </div>
+      <el-dropdown @command="handleCommand" trigger="click">
+        <div class="user-info" style="cursor: pointer;">
+          <el-avatar :size="32" style="background-color: #667eea; margin-right: 8px;">
+            {{ authStore.username?.charAt(0)?.toUpperCase() || 'U' }}
+          </el-avatar>
+          <span class="username">{{ authStore.username }}</span>
+          <el-tag v-if="authStore.isAdmin" type="danger" size="small" style="margin-left: 8px;">
+            管理员
+          </el-tag>
+          <el-icon class="el-icon--right" style="margin-left: 8px;"><ArrowDown /></el-icon>
+        </div>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="profile">
+              <el-icon><User /></el-icon>
+              个人信息
+            </el-dropdown-item>
+            <el-dropdown-item command="settings">
+              <el-icon><Setting /></el-icon>
+              设置
+            </el-dropdown-item>
+            <el-dropdown-item divided command="logout">
+              <el-icon><SwitchButton /></el-icon>
+              退出登录
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </el-header>
     <el-main class="main-content">
       <router-view />

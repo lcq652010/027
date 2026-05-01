@@ -1,7 +1,12 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from enum import Enum
 from .database import Base
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
 
 class User(Base):
     __tablename__ = "users"
@@ -11,6 +16,9 @@ class User(Base):
     email = Column(String(100), unique=True, index=True)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100))
+    role = Column(SQLEnum(UserRole), default=UserRole.USER, nullable=False)
+    is_active = Column(Integer, default=1)
+    last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
